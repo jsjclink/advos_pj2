@@ -197,7 +197,7 @@ Library installation on course VM can be requested via Piazza.
 ## 4. Delivarables
 You should submit the compressed source code and report separately through Canvas.
 Please include all source code, Makefile, README, etc., in a directory and compress it as a tarball. 
-Reference instruction is listed at [here](https://github.gatech.edu/cs6210-spring23/project1/blob/master/doc/project_1_submission.md).
+Reference instruction is listed at [here](https://github.gatech.edu/CS6210-4210-Spring24/Project2/blob/main/doc/submission.md).
 **If you work in a group**, one of you submits the compressed file while the other member submits a text file contained the names of members. 
 
 Please have correct naming and file structure like below: 
