@@ -194,7 +194,7 @@ You may think using POSIX library is more attractive than System V library becau
 Library installation on course VM can be requested via Piazza.
 
 
-## 4. Delivarables
+## 4. Deliverables
 You should submit the compressed source code and report separately through Canvas.
 Please include all source code, Makefile, README, etc., in a directory and compress it as a tarball. 
 Reference instruction is listed at [here](https://github.gatech.edu/CS6210-4210-Spring24/Project2/blob/main/doc/submission.md).
