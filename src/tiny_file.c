@@ -137,7 +137,7 @@ void* t_call_service(void *arg) {
     handle->result = call_sync_service(handle->file_name, handle->result_buffer);
 }
 
-struct async_service_handle* initiate_async_service(char* file_name, char* result_buffer) {
+struct async_service_handle* initiate_async_service(char* file_name, char** result_buffer) {
     struct async_service_handle* handle = malloc(sizeof(struct async_service_handle));
     handle->file_name = file_name;
     handle->result_buffer = result_buffer;
