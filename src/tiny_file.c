@@ -18,7 +18,8 @@ int call_sync_service(char* file_name, char** result_buffer) {
     int shm_id;
     int sms_size;
     void* shm_ptr;
-
+    char* file_buffer;
+    int count = 0;
     int fd;
     struct stat file_stat;
 
@@ -58,8 +59,8 @@ int call_sync_service(char* file_name, char** result_buffer) {
         return -1;
     }
     printf("client: file open completed\n");
-    *result_buffer = malloc(file_stat.st_size * sizeof(char));
-    if (read(fd, *result_buffer, file_stat.st_size) == -1) {
+    file_buffer = malloc(file_stat.st_size * sizeof(char));
+    if (read(fd, file_buffer, file_stat.st_size) == -1) {
         perror("read failed");
         shmdt(shm_ptr);
         close(fd);
@@ -97,7 +98,7 @@ int call_sync_service(char* file_name, char** result_buffer) {
 
     printf("client: received sms_size response\n");
     sms_size = msg_server.sms_size;
-    
+    *result_buffer = malloc(32 + file_stat.st_size * sizeof(char) + file_stat.st_size * sizeof(char)/6);
     // HERE
     int itr =  (file_stat.st_size + sms_size -1)/ sms_size;
     for(int i = 0 ; i <itr; i++){
@@ -134,7 +135,7 @@ int call_sync_service(char* file_name, char** result_buffer) {
         printf("client: attached to shm\n");
         /* write file content to shared memory*/
 
-        memcpy(shm_ptr, *result_buffer + sms_size * i, sms_size);
+        memcpy(shm_ptr, file_buffer + sms_size * i, sms_size);
         printf("client: moved data to shm\n");
         /* send file_content_filled alert to server */
         msg_client.msg_type = 1;
@@ -158,8 +159,9 @@ int call_sync_service(char* file_name, char** result_buffer) {
 
         /* ... */
         
-        memcpy(*result_buffer + sms_size * i, shm_ptr, sms_size);
-        //printf("client: res_buffer: \"%s\"\n", *result_buffer);
+        memcpy(*result_buffer + count, shm_ptr, msg_server.sms_size);
+        //printf("client: res_buffer: \"%d\"\n", msg_server.sms_size);
+        count += msg_server.sms_size;
         shmctl(shm_id,IPC_RMID,NULL);
         shmdt(shm_ptr);
     }

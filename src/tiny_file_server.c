@@ -128,7 +128,7 @@ void compress_response(struct msg_buffer_client msg_client) {
 
     /* send message to client */
     msg_server.msg_type = 1;
-    
+    msg_server.sms_size = compressed_s;
     if (msgsnd(msg_client.cli_msgqid, &msg_server, sizeof(msg_server), 0) == -1) {
         perror("msgsnd error");
         exit(1);
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
     // get arguments from command line
     if(argc == 5) {
         n_sms = atoi(argv[2]);
-        sms_size = atoi(argv[4]);
+        sms_size = snappy_max_compressed_length(atoi(argv[4]));
     } else {
         printf("init failed\n");
         exit(1);
