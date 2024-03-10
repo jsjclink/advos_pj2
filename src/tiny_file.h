@@ -9,6 +9,7 @@
 #define MAX_SERVINGS 32
 
 enum message_type {
+    SMS_SIZE_REQUEST,
     SHM_REQUEST,
     FILE_CONTENT_FILLED,
     REQUEST_REJECT,

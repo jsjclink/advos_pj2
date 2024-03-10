@@ -31,6 +31,17 @@ int get_new_serving_idx() {
     return i;
 }
 
+void sms_size_response(struct msg_buffer_client msg_client) {
+    struct msg_buffer_server msg_server;
+    msg_server.msg_type = 1;
+    msg_server.sms_size = sms_size;
+
+    if (msgsnd(msg_client.cli_msgqid, &msg_server, sizeof(msg_server), 0) == -1) {
+        perror("msgsnd error");
+        exit(1);
+    }
+}
+
 void shm_response(struct msg_buffer_client msg_client) {
     key_t shm_key;
     int shm_id;
@@ -77,7 +88,6 @@ void shm_response(struct msg_buffer_client msg_client) {
     /* send message to client */
     msg_server.msg_type = 1;
     msg_server.shm_key = shm_key;
-    msg_server.sms_size = sms_size;
 
     if (msgsnd(msg_client.cli_msgqid, &msg_server, sizeof(msg_server), 0) == -1) {
         perror("msgsnd error");
@@ -180,6 +190,9 @@ int main(int argc, char *argv[]) {
         printf("server: message received\n");
 
         switch(msg_client.message_type) {
+            case SMS_SIZE_REQUEST:
+                sms_size_response(msg_client);
+                break;
             case SHM_REQUEST: 
                 shm_response(msg_client);
                 break;
