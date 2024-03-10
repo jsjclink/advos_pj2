@@ -1,0 +1,17 @@
+TinyFile service
+A service process/daemon that will manage the input requests and send back a response
+Your design of TinyFile service must incorporate the concept of a service process that actually executes the service.
+A TinyFile server has 2 modes of requests: SYNC (blocking) / ASYNC (nonblocking)
+there may be structures (including the response itself) that must be cleaned up once the response has been received, or certain application logic may start up or continue once the recipient has acknowledged the response.
+
+For this part of the project you will need to implement asynchronous communication. You have a choice as to how the service process can choose to determine that a response has been delivered. One of the design options to implement async process is to have a blocking function call in the caller that at a later time retrieves the result and initiates the cleanup. The second choice is to let the caller register a callback function that is called by the service process when a response is ready. This also requires that the callback function is called with a reference to the original response. In either case, you will need to think about how to notify the calling process that the request is complete and to deliver any data in the response.
+The service process can use one or more queues on which the requests are queued up.
+
+How many you choose to use depends on your design, but must be justified.
+Note that you will need to use shared memory for all the data is shepherded back and forth.
+
+The service process can be started as a daemon, meaning that it is an independent process can be started from the command line.
+
+The service process implements a file compression functionality. Coupled with QoS functionality, this non-trivial computation kernel allows you to demonstrate the queue management of your service process.
+
+Use the snappy-c library to implement file compression functionality.
