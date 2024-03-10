@@ -8,7 +8,7 @@
    Input: file name , result buffer
    Output: Returns 0 if successful
 */
-int call_sync_service(char* file_name, void** result_buffer) {
+int call_sync_service(char* file_name, char** result_buffer) {
     key_t server_msgq_key;
     int server_msgq_id, client_msgq_id;
     struct msg_buffer_server msg_server;
@@ -16,6 +16,7 @@ int call_sync_service(char* file_name, void** result_buffer) {
 
     key_t shm_key;
     int shm_id;
+    int sms_size;
     void* shm_ptr;
 
     int fd;
@@ -56,13 +57,22 @@ int call_sync_service(char* file_name, void** result_buffer) {
         close(fd);
         return -1;
     }
-
     printf("client: file open completed\n");
+    *result_buffer = malloc(file_stat.st_size * sizeof(char));
+    if (read(fd, *result_buffer, file_stat.st_size) == -1) {
+        perror("read failed");
+        shmdt(shm_ptr);
+        close(fd);
+        return -1;
+    }
+    
+    close(fd);
 
-        /* request shared memory to server */
+    printf("client: file content copy completed\n");
+    /* request shared memory to server */
     msg_client.msg_type = 1;
     msg_client.cli_msgqid = client_msgq_id;
-    msg_client.message_type = SHM_REQUEST;
+    msg_client.message_type = SMS_SIZE_REQUEST;
     msg_client.shm_size = file_stat.st_size;
 
     if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
@@ -70,10 +80,10 @@ int call_sync_service(char* file_name, void** result_buffer) {
         return -1;
     }
 
-    printf("client: requested shared memory to server\n");
+    printf("client: requested sms_size to server\n");
 
     /* wait for shared memory response */
-    printf("client: waiting for shared memory response\n");
+    printf("client: waiting for sms_size response\n");
 
     if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
         perror("msgrcv error");
@@ -85,60 +95,78 @@ int call_sync_service(char* file_name, void** result_buffer) {
         return -1;
     }
 
-    printf("client: received shared memory response\n");
-
-    /* copy file content to shared memory */
-    if((shm_id = shmget(msg_server.shm_key, file_stat.st_size, 0644)) == -1) {
-        perror("shmget error");
-        return -1;
-    }
-    if((shm_ptr = shmat(shm_id, NULL, 0)) == (void *)-1) {
-        perror("shmat error");
-        return -1;
-    }
-    // write file content to shared memory
-    if (read(fd, shm_ptr, file_stat.st_size) == -1) {
-        perror("read failed");
-        shmdt(shm_ptr);
-        close(fd);
-        return -1;
-    }
-
-    close(fd);
-
-    printf("client: file content copy completed\n");
-
-    /* send file_content_filled alert to server */
-    msg_client.msg_type = 1;
-    msg_client.cli_msgqid = client_msgq_id;
-    msg_client.message_type = FILE_CONTENT_FILLED;
-
-    if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
-        perror("msgsnd error");
-        return -1;
-    }
+    printf("client: received sms_size response\n");
+    sms_size = msg_server.sms_size;
     
-    /* wait for response */
-    printf("client: waiting for file compress response\n");
+    // HERE
+    int itr =  (file_stat.st_size + sms_size -1)/ sms_size;
+    for(int i = 0 ; i <itr; i++){
+        /* copy file content to shared memory */
+        msg_client.msg_type = 1;
+        msg_client.cli_msgqid = client_msgq_id;
+        msg_client.message_type = SHM_REQUEST;
+        msg_client.shm_size = sms_size;
 
-    if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
-        perror("msgrcv error");
-        return -1;
+        if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
+            perror("msgsnd error");
+            return -1;
+        }
+
+        printf("client: requested shm_sgm to server\n");
+
+        /* wait for shared memory response */
+        printf("client: waiting for shm_sgm response\n");
+
+        if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
+            perror("msgrcv error");
+            return -1;
+        }
+        printf("client: got shm_req response\n");
+
+        if((shm_id = shmget(msg_server.shm_key, sms_size, 0644)) == -1) {
+            perror("shmget error");
+            return -1;
+        }
+        if((shm_ptr = shmat(shm_id, NULL, 0)) == (void *)-1) {
+            perror("shmat error");
+            return -1;
+        }
+        printf("client: attached to shm\n");
+        /* write file content to shared memory*/
+
+        memcpy(shm_ptr, *result_buffer + sms_size * i, sms_size);
+        printf("client: moved data to shm\n");
+        /* send file_content_filled alert to server */
+        msg_client.msg_type = 1;
+        msg_client.cli_msgqid = client_msgq_id;
+        msg_client.message_type = FILE_CONTENT_FILLED;
+
+        if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
+            perror("msgsnd error");
+            return -1;
+        }
+        
+        /* wait for response */
+        printf("client: waiting for file compress response\n");
+
+        if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
+            perror("msgrcv error");
+            return -1;
+        }
+
+        printf("client: received file compress response\n");
+
+        /* ... */
+        
+        memcpy(*result_buffer + sms_size * i, shm_ptr, sms_size);
+        //printf("client: res_buffer: \"%s\"\n", *result_buffer);
+        shmctl(shm_id,IPC_RMID,NULL);
+        shmdt(shm_ptr);
     }
-
-    printf("client: received file compress response\n");
-
-    /* ... */
-    *result_buffer = malloc(file_stat.st_size * sizeof(char));
-    memcpy(*result_buffer, shm_ptr, file_stat.st_size);
-    printf("client: res_buffer: \"%s\"\n", *result_buffer);
-    shmctl(shm_id,IPC_RMID,NULL);
-    shmdt(shm_ptr);
-
     end_time = time(NULL);
     elapsed_time = difftime(end_time, start_time);
     printf("Elapsed time: %.10f seconds\n", elapsed_time);
-
+    printf("client: res_buffer: \"%s\"\n", *result_buffer);
     return 0;
 }
 
