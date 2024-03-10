@@ -15,7 +15,7 @@ $(OUT): $(OBJ)
 
 app:
 	$(CC) $(CFLAGS) src/tiny_file_client.c $(OUT) -o bin/usapp -pthread
-	$(CC) $(CFLAGS) src/tiny_file_server.c $(OUT) -o bin/service -L ./ -lsnappyc
+	$(CC) $(CFLAGS) src/tiny_file_server.c -o bin/service -L ./ -lsnappyc
 	export LD_LIBRARY_PATH=./
 lib : snappy.o libsnappyc.so
 snappy.o: snappy.c compat.h snappy-int.h

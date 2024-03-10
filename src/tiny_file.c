@@ -7,7 +7,7 @@
    Input: file name , result buffer
    Output: Returns 0 if successful
 */
-int call_sync_service(char* file_name, char* result_buffer) {
+int call_sync_service(char* file_name, void** result_buffer) {
     key_t server_msgq_key;
     int server_msgq_id, client_msgq_id;
     struct msg_buffer_server msg_server;
@@ -123,9 +123,9 @@ int call_sync_service(char* file_name, char* result_buffer) {
     printf("client: received file compress response\n");
 
     /* ... */
-    result_buffer = malloc(file_stat.st_size * sizeof(char));
-    memcpy(result_buffer, shm_ptr, file_stat.st_size);
-    printf("client: res_buffer: \"%s\"\n", result_buffer);
+    *result_buffer = malloc(file_stat.st_size * sizeof(char));
+    memcpy(*result_buffer, shm_ptr, file_stat.st_size);
+    printf("client: res_buffer: \"%s\"\n", *result_buffer);
 
     shmdt(shm_ptr);
     return 0;

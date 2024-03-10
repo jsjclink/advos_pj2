@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         while (fgets(buf, sizeof(buf), file)) {
-            if(call_sync_service(file_name,result) < 0){
+            if(call_sync_service(file_name,result)<0){
                 printf("TF Service Error\n");
                 exit(1);
             }
@@ -45,11 +45,12 @@ int main(int argc, char *argv[]) {
     }
 
     else{
-        if(call_sync_service(file_name,result) < 0){
+        if(call_sync_service(file_name,&result)< 0){
             printf("TF Service Error\n");
             exit(1);
         }
-        if(result) printf("TF Success!\n");
+        printf("client: got back from api: \"%s\"\n", result);
+        if(result != NULL) printf("TF Success!\n");
         else printf("TF Failure...\n");
     }
 }
