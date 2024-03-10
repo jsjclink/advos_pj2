@@ -35,3 +35,5 @@ struct current_serving_state {
     int cli_msgqid;
     void* shm_ptr;
 };
+
+int call_sync_service(char* file_name, char* result_buffer);

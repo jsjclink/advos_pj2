@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Calling SYNC TINYFILE 
+   Input: file name , result buffer
+   Output: Returns 0 if successful
+*/
 int call_sync_service(char* file_name, char* result_buffer) {
     key_t server_msgq_key;
     int server_msgq_id, client_msgq_id;
@@ -122,4 +126,5 @@ int call_sync_service(char* file_name, char* result_buffer) {
     printf("client: res_buffer: \"%s\"\n", (char *)(result_buffer));
 
     shmdt(shm_ptr);
+    return 0;
 }
