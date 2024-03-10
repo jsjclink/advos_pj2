@@ -113,6 +113,8 @@ int main() {
     }
 
     printf("client: received file compress response\n");
+    
+    printf("client: compression res: \"%s\"\n", (char *)(shm_ptr));
 
 
     /* shared memory */
