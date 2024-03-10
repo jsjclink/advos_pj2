@@ -1,6 +1,7 @@
 #include "tiny_file.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 int call_sync_service(char* file_name, char* result_buffer) {
     key_t server_msgq_key;
@@ -118,8 +119,31 @@ int call_sync_service(char* file_name, char* result_buffer) {
     printf("client: received file compress response\n");
 
     /* ... */
+    result_buffer = malloc(file_stat.st_size * sizeof(char));
     memcpy(shm_ptr, result_buffer, file_stat.st_size);
     printf("client: res_buffer: \"%s\"\n", (char *)(result_buffer));
 
     shmdt(shm_ptr);
+}
+
+void* t_call_service(void *arg) {
+    struct async_service_handle* handle = (struct async_service_handle*)arg;
+
+    handle->result = call_sync_service(handle->file_name, handle->result_buffer);
+}
+
+struct async_service_handle* initiate_async_service(char* file_name, char* result_buffer) {
+    struct async_service_handle* handle = malloc(sizeof(struct async_service_handle));
+    handle->file_name = file_name;
+    handle->result_buffer = result_buffer;
+
+    pthread_create(&(handle->pthread), NULL, t_call_service, (void*)handle);
+
+    return handle;
+}
+
+int wait_for_results(struct async_service_handle* handle) {
+    pthread_join(handle->pthread, NULL);
+
+    free(handle);
 }

@@ -2,6 +2,7 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pthread.h>>
 
 
 #define TINY_FILE_KEY "tiny_file_key"
@@ -34,4 +35,11 @@ struct current_serving_state {
     int valid;
     int cli_msgqid;
     void* shm_ptr;
+};
+
+struct async_service_handle {
+    pthread_t pthread;
+    char* file_name;
+    char* result_buffer;
+    int result;
 };
