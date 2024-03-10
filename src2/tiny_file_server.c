@@ -1,15 +1,13 @@
 #include "tiny_file.h"
-#include "snappy.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "snappy.h"
 
 struct current_serving_state current_servings[MAX_SERVINGS];
 struct snappy_env *se;
 int n_sms;
 int sms_size;
-
-struct snappy_env *se;
 
 int get_serving_idx(struct msg_buffer_client msg_client) {
     int i;
@@ -83,28 +81,31 @@ void shm_response(struct msg_buffer_client msg_client) {
 
 void compress_response(struct msg_buffer_client msg_client) {
     struct msg_buffer_server msg_server;
+    char *output;
 
     int idx = get_serving_idx(msg_client);
-
-    /* compression */
+    int compressed_s = 0;
     printf("server: compressing ... cli_idx: %d\n", idx);
 
-    char *compression_output;
-    int compressed_s = 0;
-    if(!(compression_output = malloc(snappy_max_compressed_length(msg_client.shm_size)))){
+    if(!(output = malloc(snappy_max_compressed_length(msg_client.shm_size)))){
         perror("snappy-c output buffer malloc error");
         exit(1);
     }
     //printf("server: shared memory size: %d, output size: %d\n", msg_client.shm_size,snappy_max_compressed_length(msg_client.shm_size) );
-    if(snappy_compress(se,current_servings[idx].shm_ptr, msg_client.shm_size, compression_output, &compressed_s) < 0){
+    if(snappy_compress(se,current_servings[idx].shm_ptr , msg_client.shm_size,output,&compressed_s)< 0){
         perror("snappy-c compress error");
         exit(1);
     }
-    memset(current_servings[idx].shm_ptr, 0, msg_client.shm_size);
-    memcpy(current_servings[idx].shm_ptr, compression_output, compressed_s);
-    free(compression_output);
 
-    printf("server: compression res: \"%s\"\n", (char *)(current_servings[idx].shm_ptr));
+    //printf("server: snappy-c compressed: %d\n", compressed_s);
+    memset(current_servings[idx].shm_ptr,0,msg_client.shm_size);
+    memcpy(current_servings[idx].shm_ptr,output,compressed_s);
+    printf("server: moved to shared memory: \"%s\"\n", (char *)current_servings[idx].shm_ptr);
+    free(output);
+    msg_server.msg_type = 1;
+    //msg_server.comp_size = compressed_s;
+
+    //printf("server: Read from shared memory: \"%s\"\n", (char *)(current_servings[idx].shm_ptr));
 
     /* send message to client */
     msg_server.msg_type = 1;
@@ -127,20 +128,15 @@ int main(int argc, char *argv[]) {
 
     /* init */
     // get arguments from command line
-    if(argc == 5) {
-        n_sms = atoi(argv[2]);
-        sms_size = atoi(argv[4]);
-    } else {
-        printf("init failed\n");
-        exit(1);
-    }
-    
+    n_sms = atoi(argv[2]);
+    sms_size = atoi(argv[4]);
+
     // init current_servings
     for(int i = 0; i < n_sms; i++){
         current_servings[i].valid = 0;
     }
-
-    // init snappy env
+    
+    //init snappy env
     if(!(se = malloc(sizeof(struct snappy_env)))){
         perror("snappy env malloc error");
         exit(1);
