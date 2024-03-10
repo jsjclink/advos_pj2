@@ -1,0 +1,7 @@
+.vscode/
+
+src/tiny_file.o
+
+bin/libtf.a
+bin/service
+bin/usapp
