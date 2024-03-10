@@ -15,12 +15,12 @@ $(OUT): $(OBJ)
 
 app:
 	$(CC) $(CFLAGS) src/tiny_file_client.c $(OUT) -o bin/usapp -pthread
+	$(CC) $(CFLAGS) src/tiny_file_client2.c $(OUT) -o bin/usapp2 -pthread
 	$(CC) $(CFLAGS) src/tiny_file_server.c -o bin/service -L ./ -lsnappyc
-	export LD_LIBRARY_PATH=./
 lib : snappy.o libsnappyc.so
 snappy.o: snappy.c compat.h snappy-int.h
 libsnappyc.so: snappy.o
 	$(CC) $(LDFLAGS) -shared -o $@ $^   
 clean :
-	@rm src/*.o bin/*.a bin/usapp bin/service snappy.o libsnappyc.so
+	@rm src/*.o bin/*.a bin/usapp bin/usapp2 bin/service snappy.o libsnappyc.so
 	@echo Cleaned!

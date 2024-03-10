@@ -118,6 +118,7 @@ void compress_response(struct msg_buffer_client msg_client) {
 
     /* invalidate current serving state */
     current_servings[idx].valid = 0;
+    shmdt(current_servings[idx].shm_ptr);
 }
 
 int main(int argc, char *argv[]) {

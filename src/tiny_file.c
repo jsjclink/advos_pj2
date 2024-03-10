@@ -126,7 +126,7 @@ int call_sync_service(char* file_name, void** result_buffer) {
     *result_buffer = malloc(file_stat.st_size * sizeof(char));
     memcpy(*result_buffer, shm_ptr, file_stat.st_size);
     printf("client: res_buffer: \"%s\"\n", *result_buffer);
-
+    shmctl(shm_id,IPC_RMID,NULL);
     shmdt(shm_ptr);
     return 0;
 }
