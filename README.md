@@ -40,8 +40,5 @@
   * You can possibly add other arguments as you need, just make sure putting some note in your report. Also, add `README` file with instruction.
   
 ### How to Use
-* make lib
-* make && make app
-* ./bin/service
-* ./bin/usapp
+* ./tfservice.sh
 * make clean
