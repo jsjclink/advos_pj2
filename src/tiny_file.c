@@ -93,6 +93,8 @@ int call_sync_service(char* file_name, char* result_buffer) {
         exit(1);
     }
 
+    close(fd);
+
     printf("client: file content copy completed\n");
 
     /* send file_content_filled alert to server */
@@ -118,4 +120,6 @@ int call_sync_service(char* file_name, char* result_buffer) {
     /* ... */
     memcpy(shm_ptr, result_buffer, file_stat.st_size);
     printf("client: res_buffer: \"%s\"\n", (char *)(result_buffer));
+
+    shmdt(shm_ptr);
 }
