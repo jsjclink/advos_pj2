@@ -151,4 +151,5 @@ int wait_for_results(struct async_service_handle* handle) {
     pthread_join(handle->pthread, NULL);
 
     free(handle);
+    return 0;
 }
