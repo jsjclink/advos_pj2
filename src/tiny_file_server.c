@@ -33,6 +33,13 @@ int get_new_serving_idx() {
 
 void sms_size_response(struct msg_buffer_client msg_client) {
     struct msg_buffer_server msg_server;
+
+    int idx = get_new_serving_idx();
+    /* set current serving state */
+    current_servings[idx].cli_msgqid = msg_client.cli_msgqid;
+    current_servings[idx].valid = 1;
+
+    /* send response */
     msg_server.msg_type = 1;
     msg_server.sms_size = sms_size;
 
@@ -48,7 +55,7 @@ void shm_response(struct msg_buffer_client msg_client) {
     void* shm_ptr;
     struct msg_buffer_server msg_server;
 
-    int idx = get_new_serving_idx();
+    int idx = get_serving_idx(msg_client);
     if(idx == n_sms){
         msg_server.msg_type = 1;
         msg_server.message_type = REQUEST_REJECT;
@@ -79,9 +86,7 @@ void shm_response(struct msg_buffer_client msg_client) {
     }
 
     /* set current serving state */
-    current_servings[idx].cli_msgqid = msg_client.cli_msgqid;
     current_servings[idx].shm_ptr = shm_ptr;
-    current_servings[idx].valid = 1;
 
     printf("server: generated current serving state. idx: %d\n", idx);
 
