@@ -29,6 +29,7 @@ struct msg_buffer_server {
 
     enum message_type message_type;
     key_t shm_key;
+    int sms_size;
 };
 
 struct current_serving_state {

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 
 /* Calling SYNC TINYFILE 
    Input: file name , result buffer
@@ -20,21 +21,26 @@ int call_sync_service(char* file_name, void** result_buffer) {
     int fd;
     struct stat file_stat;
 
+    time_t start_time, end_time;
+    double elapsed_time;
+
     /* init */
+    start_time = time(NULL);
     // get server msgq key
     if((server_msgq_key = ftok(TINY_FILE_KEY, 's')) == -1) {
         perror("ftok error");
-        exit(1);
+        return -1;
     }
     // get server msgq
     if((server_msgq_id = msgget(server_msgq_key, 0666 | IPC_CREAT)) == -1) {
         perror("msgget server error");
-        exit(1);
+        return -1;
     }
 
     // create client msgq
     if((client_msgq_id = msgget(IPC_PRIVATE, 0666 | IPC_CREAT)) == -1) {
         perror("msgget client error");
+        return -1;
     }
 
     printf("client: init completed\n");
@@ -42,13 +48,13 @@ int call_sync_service(char* file_name, void** result_buffer) {
         /* open file */
     if ((fd = open(file_name, O_RDWR)) == -1) {
         perror("open failed");
-        exit(1);
+        return -1;
     }
 
     if (fstat(fd, &file_stat) == -1) {
         perror("fstat failed");
         close(fd);
-        exit(1);
+        return -1;
     }
 
     printf("client: file open completed\n");
@@ -61,7 +67,7 @@ int call_sync_service(char* file_name, void** result_buffer) {
 
     if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
         perror("msgsnd error");
-        exit(1);
+        return -1;
     }
 
     printf("client: requested shared memory to server\n");
@@ -71,12 +77,12 @@ int call_sync_service(char* file_name, void** result_buffer) {
 
     if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
         perror("msgrcv error");
-        exit(1);
+        return -1;
     }
 
     if(msg_server.message_type == REQUEST_REJECT) {
         printf("client: request rejected. abort\n");
-        exit(1);
+        return -1;
     }
 
     printf("client: received shared memory response\n");
@@ -84,18 +90,18 @@ int call_sync_service(char* file_name, void** result_buffer) {
     /* copy file content to shared memory */
     if((shm_id = shmget(msg_server.shm_key, file_stat.st_size, 0644)) == -1) {
         perror("shmget error");
-        exit(1);
+        return -1;
     }
     if((shm_ptr = shmat(shm_id, NULL, 0)) == (void *)-1) {
         perror("shmat error");
-        exit(1);
+        return -1;
     }
     // write file content to shared memory
     if (read(fd, shm_ptr, file_stat.st_size) == -1) {
         perror("read failed");
         shmdt(shm_ptr);
         close(fd);
-        exit(1);
+        return -1;
     }
 
     close(fd);
@@ -109,7 +115,7 @@ int call_sync_service(char* file_name, void** result_buffer) {
 
     if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
         perror("msgsnd error");
-        exit(1);
+        return -1;
     }
     
     /* wait for response */
@@ -117,7 +123,7 @@ int call_sync_service(char* file_name, void** result_buffer) {
 
     if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
         perror("msgrcv error");
-        exit(1);
+        return -1;
     }
 
     printf("client: received file compress response\n");
@@ -128,6 +134,11 @@ int call_sync_service(char* file_name, void** result_buffer) {
     printf("client: res_buffer: \"%s\"\n", *result_buffer);
     shmctl(shm_id,IPC_RMID,NULL);
     shmdt(shm_ptr);
+
+    end_time = time(NULL);
+    elapsed_time = difftime(end_time, start_time);
+    printf("Elapsed time: %.10f seconds\n", elapsed_time);
+
     return 0;
 }
 

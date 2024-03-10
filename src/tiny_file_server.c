@@ -39,7 +39,6 @@ void shm_response(struct msg_buffer_client msg_client) {
 
     int idx = get_new_serving_idx();
     if(idx == n_sms){
-
         msg_server.msg_type = 1;
         msg_server.message_type = REQUEST_REJECT;
 
@@ -47,13 +46,19 @@ void shm_response(struct msg_buffer_client msg_client) {
             perror("msgsnd error");
             exit(1);
         }
+
+        /* invalidate current serving state */
+        current_servings[idx].valid = 0;
+        shmctl(shm_id,IPC_RMID,NULL);
+        shmdt(current_servings[idx].shm_ptr);
+        return;
     }
     
     if((shm_key = ftok("shm_key", idx)) == -1) {
         perror("ftok error");
         exit(1);
     }
-    if ((shm_id = shmget(shm_key, msg_client.shm_size, 0644 | IPC_CREAT)) == -1) {
+    if ((shm_id = shmget(shm_key, sms_size, 0644 | IPC_CREAT)) == -1) {
         perror("shmget error");
         exit(1);
     }
@@ -72,6 +77,7 @@ void shm_response(struct msg_buffer_client msg_client) {
     /* send message to client */
     msg_server.msg_type = 1;
     msg_server.shm_key = shm_key;
+    msg_server.sms_size = sms_size;
 
     if (msgsnd(msg_client.cli_msgqid, &msg_server, sizeof(msg_server), 0) == -1) {
         perror("msgsnd error");
