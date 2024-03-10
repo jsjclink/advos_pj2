@@ -42,3 +42,4 @@
 ### How to Use
 * ./tfservice.sh
 * make clean
+* On client --> ./bin/usapp --file tmp_file.txt --state SYNC

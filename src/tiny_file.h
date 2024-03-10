@@ -43,3 +43,5 @@ struct async_service_handle {
     char* result_buffer;
     int result;
 };
+
+int call_sync_service(char* file_name, char* result_buffer);

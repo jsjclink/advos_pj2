@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g
+CFLAGS = -g 
 LDFLAGS = 
 LIBS = .
 SRC = src/tiny_file.c
@@ -14,7 +14,7 @@ $(OUT): $(OBJ)
 	ar rcs $(OUT) $(OBJ)
 
 app:
-	$(CC) $(CFLAGS) src/tiny_file_client.c $(OUT) -o bin/usapp
+	$(CC) $(CFLAGS) src/tiny_file_client.c $(OUT) -o bin/usapp -pthread
 	$(CC) $(CFLAGS) src/tiny_file_server.c $(OUT) -o bin/service -L ./ -lsnappyc
 	export LD_LIBRARY_PATH=./
 lib : snappy.o libsnappyc.so

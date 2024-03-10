@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+/* Calling SYNC TINYFILE 
+   Input: file name , result buffer
+   Output: Returns 0 if successful
+*/
 int call_sync_service(char* file_name, char* result_buffer) {
     key_t server_msgq_key;
     int server_msgq_id, client_msgq_id;
@@ -124,6 +128,29 @@ int call_sync_service(char* file_name, char* result_buffer) {
     printf("client: res_buffer: \"%s\"\n", (char *)(result_buffer));
 
     shmdt(shm_ptr);
+    return 0;
+}
+
+void* t_call_service(void *arg) {
+    struct async_service_handle* handle = (struct async_service_handle*)arg;
+
+    handle->result = call_sync_service(handle->file_name, handle->result_buffer);
+}
+
+struct async_service_handle* initiate_async_service(char* file_name, char* result_buffer) {
+    struct async_service_handle* handle = malloc(sizeof(struct async_service_handle));
+    handle->file_name = file_name;
+    handle->result_buffer = result_buffer;
+
+    pthread_create(&(handle->pthread), NULL, t_call_service, (void*)handle);
+
+    return handle;
+}
+
+int wait_for_results(struct async_service_handle* handle) {
+    pthread_join(handle->pthread, NULL);
+
+    free(handle);
 }
 
 void* t_call_service(void *arg) {
