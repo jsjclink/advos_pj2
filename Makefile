@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g 
+CFLAGS = -g -DNDEBUG
 LDFLAGS = 
 LIBS = .
 SRC = src/tiny_file.c
