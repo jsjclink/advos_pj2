@@ -42,4 +42,9 @@
 ### How to Use
 * ./tfservice.sh
 * make clean
-* On client --> ./bin/usapp --file tmp_file.txt --state SYNC
+* On client --> 
+./bin/usapp3 --file ./input/Huge.jpg --state SYNC
+./bin/usapp3 --file ./input/Huge.jpg --state ASYNC
+./bin/usapp3 --files ./input/file_list.txt --state SYNC
+./bin/usapp3 --files ./input/file_list.txt --state ASYNC
+  

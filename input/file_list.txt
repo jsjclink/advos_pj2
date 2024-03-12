@@ -3,6 +3,3 @@
 ./input/Medium.pdf
 ./input/Small.jpg
 ./input/Tiny.txt
-./input/Tiny.txt
-./input/Tiny.txt
-./input/Tiny.txt

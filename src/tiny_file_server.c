@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /* global variables */
 int current_servings;
@@ -54,10 +55,24 @@ void init_service(int argc, char *argv[]) {
         perror("msgget server error");
         exit(1);
     }
+    
+    // empty msgq
+    for(int i = 0; i < 256; i++) {
+        key_t k;
+        int k_id;
+        if((k = ftok(TINY_FILE_KEY, 255)) == -1) {
+            perror("ftok error");
+            exit(1);
+        }
+        // get server msgq
+        if((k_id = msgget(k, 0666 | IPC_CREAT)) == -1) {
+            perror("msgget server error");
+            exit(1);
+        }
 
-    struct msg_buffer_server msg;
-    while(msgrcv(server_msgq_id, &msg, sizeof(msg), 1, IPC_NOWAIT) != -1);
-
+        struct msg_buffer_server msg;
+        while(msgrcv(k_id, &msg, sizeof(msg), 1, IPC_NOWAIT) != -1);
+    }
 
     printf("server: init completed\n");
 }
@@ -186,6 +201,11 @@ void t_compress_service(int arg) {
     /* detach shm */
     shmctl(shm_id, IPC_RMID, NULL);
     shmdt(shm_ptr);
+
+    /* empty msgq */
+    struct msg_buffer_client msg;
+    while(msgrcv(server_private_msgq_id, &msg, sizeof(msg), 1, IPC_NOWAIT) != -1);
+
     /* remove msgq */
     msgctl(server_private_msgq_id, IPC_RMID, NULL);
 

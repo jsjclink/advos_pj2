@@ -43,6 +43,10 @@ int call_service(char* file_name, char** result_buffer) {
         perror("msgget client error");
         return -1;
     }
+    // empty client msgq
+    struct msg_buffer_client msg;
+    while(msgrcv(client_msgq_id, &msg, sizeof(msg), 1, IPC_NOWAIT) != -1);
+
 
     printf("cli_msgqid: %d\n", client_msgq_id);
 
@@ -101,7 +105,7 @@ int call_service(char* file_name, char** result_buffer) {
     /* start requesting for compression */
     int count = 0;
     int itr = (file_stat.st_size + max_req_size - 1) / max_req_size;
-    *result_buffer = malloc(itr * sms_size * sizeof(char));
+    *result_buffer = malloc(itr * 2 * sms_size * sizeof(char));
 
     for(int i = 0; i < itr; i++) {
         /* send service request */
