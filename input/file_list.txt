@@ -1,7 +1,8 @@
 ./input/Huge.jpg
-./input/Huge.jpg
-./input/Huge.jpg
-./input/Huge.jpg
-./input/Huge.jpg
-./input/Huge.jpg
-./input/Huge.jpg
+./input/Large.txt
+./input/Medium.pdf
+./input/Small.jpg
+./input/Tiny.txt
+./input/Tiny.txt
+./input/Tiny.txt
+./input/Tiny.txt

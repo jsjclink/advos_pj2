@@ -153,10 +153,10 @@ void t_compress_service(int arg) {
     /* do compress */
     char* compression_output = malloc(sms_size * sizeof(char));
     int compressed_size = sms_size;
-    // if(snappy_compress(se, shm_ptr, max_req_size, compression_output, &compressed_size) < 0){
-    //     perror("snappy-c compress error");
-    //     exit(1);
-    // }
+    if(snappy_compress(se, shm_ptr, max_req_size, compression_output, &compressed_size) < 0){
+        perror("snappy-c compress error");
+        exit(1);
+    }
     memset(shm_ptr, 0, sms_size);
     memcpy(shm_ptr, compression_output, compressed_size);
     free(compression_output);
