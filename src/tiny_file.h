@@ -9,19 +9,21 @@
 #define MAX_SERVINGS 32
 
 enum message_type {
+    // client
     SMS_SIZE_REQUEST,
-    SHM_REQUEST,
+    SERVICE_REQUEST,
     FILE_CONTENT_FILLED,
-    REQUEST_REJECT,
-    SHM_RESPONSE,
-    COMPRESS_RESPONSE,
+    SHM_USE_FINISHED,
+    // server
+    SMS_SIZE_RESPONSE,
+    FILE_CONTENT_FILL_REQUEST,
+    COMPRESS_DONE,
 };
 
 struct msg_buffer_client {
     long msg_type;
 
     enum message_type message_type;    
-    long shm_size;
     int cli_msgqid;
 };
 
@@ -29,14 +31,14 @@ struct msg_buffer_server {
     long msg_type;
 
     enum message_type message_type;
-    key_t shm_key;
-    int sms_size;
-};
 
-struct current_serving_state {
-    int valid;
-    int cli_msgqid;
-    void* shm_ptr;
+    int sms_size;
+    int max_req_size;
+
+    key_t shm_key;
+    int server_private_msgqid;
+
+    int compressed_size;
 };
 
 struct async_service_handle {

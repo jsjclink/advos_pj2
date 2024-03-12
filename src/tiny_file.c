@@ -8,20 +8,18 @@
    Input: file name , result buffer
    Output: Returns 0 if successful
 */
-int call_sync_service(char* file_name, char** result_buffer) {
-    key_t server_msgq_key;
-    int server_msgq_id, client_msgq_id;
+int call_service(char* file_name, char** result_buffer) {
+    int server_msgq_id, server_private_msgq_id, client_msgq_id;
     struct msg_buffer_server msg_server;
     struct msg_buffer_client msg_client;
 
+    struct stat file_stat;
+
+    int sms_size, max_req_size;
+
     key_t shm_key;
     int shm_id;
-    int sms_size;
-    void* shm_ptr;
-    char* file_buffer;
-    int count = 0;
-    int fd;
-    struct stat file_stat;
+    void *shm_ptr; 
 
     time_t start_time, end_time;
     double elapsed_time;
@@ -29,7 +27,8 @@ int call_sync_service(char* file_name, char** result_buffer) {
     /* init */
     start_time = time(NULL);
     // get server msgq key
-    if((server_msgq_key = ftok(TINY_FILE_KEY, 's')) == -1) {
+    key_t server_msgq_key;
+    if((server_msgq_key = ftok(TINY_FILE_KEY, 255)) == -1) {
         perror("ftok error");
         return -1;
     }
@@ -45,9 +44,10 @@ int call_sync_service(char* file_name, char** result_buffer) {
         return -1;
     }
 
-    printf("client: init completed\n");
+    printf("cli_msgqid: %d\n", client_msgq_id);
 
-        /* open file */
+    /* open file */
+    int fd;
     if ((fd = open(file_name, O_RDWR)) == -1) {
         perror("open failed");
         return -1;
@@ -58,72 +58,79 @@ int call_sync_service(char* file_name, char** result_buffer) {
         close(fd);
         return -1;
     }
-    printf("client: file open completed\n");
-    file_buffer = malloc(file_stat.st_size * sizeof(char));
+    char *file_buffer = malloc(file_stat.st_size * sizeof(char));
     if (read(fd, file_buffer, file_stat.st_size) == -1) {
         perror("read failed");
-        shmdt(shm_ptr);
         close(fd);
         return -1;
     }
-    
     close(fd);
 
-    printf("client: file content copy completed\n");
-    /* request shared memory to server */
+    printf("client: opened file\n");
+
+    /* request sms_size to server */
     msg_client.msg_type = 1;
-    msg_client.cli_msgqid = client_msgq_id;
     msg_client.message_type = SMS_SIZE_REQUEST;
-    msg_client.shm_size = file_stat.st_size;
+    msg_client.cli_msgqid = client_msgq_id;
 
     if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
         perror("msgsnd error");
         return -1;
     }
 
-    printf("client: requested sms_size to server\n");
+    printf("client: sent SMS_SIZE_REQUEST\n");
 
-    /* wait for shared memory response */
-    printf("client: waiting for sms_size response\n");
-
+    /* wait for SMS_SIZE_RESPONSE */
     if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
         perror("msgrcv error");
         return -1;
     }
-
-    if(msg_server.message_type == REQUEST_REJECT) {
-        printf("client: request rejected. abort\n");
+    if(msg_server.message_type != SMS_SIZE_RESPONSE) {
+        printf("received invalid message\n");
         return -1;
     }
 
-    printf("client: received sms_size response\n");
+    printf("client: received SMS_SIZE_RESPONSE\n");
+
+    // set infos
     sms_size = msg_server.sms_size;
-    *result_buffer = malloc(32 + file_stat.st_size * sizeof(char) + file_stat.st_size * sizeof(char)/6);
-    // HERE
-    int itr =  (file_stat.st_size + sms_size -1)/ sms_size;
-    for(int i = 0 ; i <itr; i++){
-        /* copy file content to shared memory */
+    max_req_size = msg_server.max_req_size;
+
+    printf("client: sms_size: %d, max_req_size: %d\n", sms_size, max_req_size);
+
+    /* start requesting for compression */
+    int count = 0;
+    int itr = (file_stat.st_size + max_req_size - 1) / max_req_size;
+    *result_buffer = malloc(itr * sms_size * sizeof(char));
+
+    for(int i = 0; i < itr; i++) {
+        /* send service request */
         msg_client.msg_type = 1;
+        msg_client.message_type = SERVICE_REQUEST;
         msg_client.cli_msgqid = client_msgq_id;
-        msg_client.message_type = SHM_REQUEST;
-        msg_client.shm_size = sms_size;
 
         if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
             perror("msgsnd error");
             return -1;
         }
 
-        printf("client: requested shm_sgm to server\n");
+        printf("client: sent SERVICE_REQUEST\n");
 
-        /* wait for shared memory response */
-        printf("client: waiting for shm_sgm response\n");
-
+        /* wait for FILE_CONTENT_FILL_REQUEST message */
         if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
             perror("msgrcv error");
             return -1;
         }
-        printf("client: got shm_req response\n");
+        if(msg_server.message_type != FILE_CONTENT_FILL_REQUEST) {
+            printf("received invalid message\n");
+            return -1;
+        }
 
+        printf("client: received FILE_CONTENT_FILL_REQUEST\n");
+
+        // set infos
+        shm_key = msg_server.shm_key;
+        server_private_msgq_id = msg_server.server_private_msgqid;
         if((shm_id = shmget(msg_server.shm_key, sms_size, 0644)) == -1) {
             perror("shmget error");
             return -1;
@@ -132,39 +139,53 @@ int call_sync_service(char* file_name, char** result_buffer) {
             perror("shmat error");
             return -1;
         }
-        printf("client: attached to shm\n");
-        /* write file content to shared memory*/
 
-        memcpy(shm_ptr, file_buffer + sms_size * i, sms_size);
-        printf("client: moved data to shm\n");
-        /* send file_content_filled alert to server */
+        memcpy(shm_ptr, file_buffer + max_req_size * i, max_req_size);
+
+        /* send FILE_CONTENT_FILLED message to server */
         msg_client.msg_type = 1;
-        msg_client.cli_msgqid = client_msgq_id;
         msg_client.message_type = FILE_CONTENT_FILLED;
-
-        if (msgsnd(server_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
+        msg_client.cli_msgqid = client_msgq_id;
+        if (msgsnd(server_private_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
             perror("msgsnd error");
             return -1;
         }
-        
-        /* wait for response */
-        printf("client: waiting for file compress response\n");
 
+        printf("client: sent FILE_CONTENT_FILLED\n");
+
+        printf("client: wait for compress done\n");
+
+        /* wait for COMPRESS_DONE message */
         if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
             perror("msgrcv error");
             return -1;
         }
+        if(msg_server.message_type != COMPRESS_DONE) {
+            printf("received invalid message\n");
+            return -1;
+        }
 
-        printf("client: received file compress response\n");
+        printf("client: received COMPRESS_DONE\n");
 
-        /* ... */
-        
-        memcpy(*result_buffer + count, shm_ptr, msg_server.sms_size);
-        //printf("client: res_buffer: \"%d\"\n", msg_server.sms_size);
-        count += msg_server.sms_size;
-        shmctl(shm_id,IPC_RMID,NULL);
+        /* copy result to result_buffer */
+        memcpy(*result_buffer + count, shm_ptr, msg_server.compressed_size);
+        count += msg_server.compressed_size;
+
+        /* send SHM_USE_FINISHED message to server */
+        msg_client.msg_type = 1;
+        msg_client.message_type = SHM_USE_FINISHED;
+        msg_client.cli_msgqid = client_msgq_id;
+        if (msgsnd(server_private_msgq_id, &msg_client, sizeof(msg_client), 0) == -1) {
+            perror("msgsnd error");
+            return -1;
+        }
+
+        printf("client: sent SHM_USE_FINISHED\n");
+
+        /* detach shm */
         shmdt(shm_ptr);
     }
+
     end_time = time(NULL);
     elapsed_time = difftime(end_time, start_time);
     printf("Elapsed time: %.10f seconds\n", elapsed_time);
@@ -172,10 +193,15 @@ int call_sync_service(char* file_name, char** result_buffer) {
     return 0;
 }
 
+
+int call_sync_service(char* file_name, char** result_buffer) {
+    return call_service(file_name, result_buffer);
+}
+
 void* t_call_service(void *arg) {
     struct async_service_handle* handle = (struct async_service_handle*)arg;
 
-    handle->result = call_sync_service(handle->file_name, handle->result_buffer);
+    handle->result = call_service(handle->file_name, handle->result_buffer);
 }
 
 struct async_service_handle* initiate_async_service(char* file_name, char** result_buffer) {
