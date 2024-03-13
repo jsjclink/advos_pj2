@@ -70,7 +70,9 @@ int main(int argc, char *argv[]) {
                 }
                 //TODO: Do something with result?
             }
-
+	    for (int i=0;i<10;i++){
+		printf("Some task:%d\n",i);
+	    }
             for(int i = 0; i < handler_idx; i++) {
                 if(wait_for_results(handlers[i]) < 0) {
                     printf("TF Service Error\n");
@@ -85,7 +87,9 @@ int main(int argc, char *argv[]) {
                 printf("TF Service Error\n");
                 exit(1);
             }
-
+	    for(int i=0;i<10;i++){
+		printf("Some task:%d\n",i);
+	    }
             if(wait_for_results(handler) < 0){
                 printf("TF Service Error\n");
                 exit(1);

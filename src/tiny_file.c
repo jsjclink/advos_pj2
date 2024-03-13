@@ -48,7 +48,7 @@ int call_service(char* file_name, char** result_buffer) {
     while(msgrcv(client_msgq_id, &msg, sizeof(msg), 1, IPC_NOWAIT) != -1);
 
 
-    printf("cli_msgqid: %d\n", client_msgq_id);
+    //printf("cli_msgqid: %d\n", client_msgq_id);
 
     /* open file */
     int fd;
@@ -70,7 +70,7 @@ int call_service(char* file_name, char** result_buffer) {
     }
     close(fd);
 
-    printf("client: opened file\n");
+    //printf("client: opened file\n");
 
     /* request sms_size to server */
     msg_client.msg_type = 1;
@@ -82,7 +82,7 @@ int call_service(char* file_name, char** result_buffer) {
         return -1;
     }
 
-    printf("client: sent SMS_SIZE_REQUEST\n");
+    //printf("client: sent SMS_SIZE_REQUEST\n");
 
     /* wait for SMS_SIZE_RESPONSE */
     if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
@@ -94,13 +94,13 @@ int call_service(char* file_name, char** result_buffer) {
         return -1;
     }
 
-    printf("client: received SMS_SIZE_RESPONSE\n");
+    //printf("client: received SMS_SIZE_RESPONSE\n");
 
     // set infos
     sms_size = msg_server.sms_size;
     max_req_size = msg_server.max_req_size;
 
-    printf("client: sms_size: %d, max_req_size: %d\n", sms_size, max_req_size);
+    //printf("client: sms_size: %d, max_req_size: %d\n", sms_size, max_req_size);
 
     /* start requesting for compression */
     int count = 0;
@@ -118,7 +118,7 @@ int call_service(char* file_name, char** result_buffer) {
             return -1;
         }
 
-        printf("client: sent SERVICE_REQUEST\n");
+        //printf("client: sent SERVICE_REQUEST\n");
 
         /* wait for FILE_CONTENT_FILL_REQUEST message */
         if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
@@ -130,7 +130,7 @@ int call_service(char* file_name, char** result_buffer) {
             return -1;
         }
 
-        printf("client: received FILE_CONTENT_FILL_REQUEST\n");
+        //printf("client: received FILE_CONTENT_FILL_REQUEST\n");
 
         // set infos
         shm_key = msg_server.shm_key;
@@ -155,9 +155,9 @@ int call_service(char* file_name, char** result_buffer) {
             return -1;
         }
 
-        printf("client: sent FILE_CONTENT_FILLED\n");
+        //printf("client: sent FILE_CONTENT_FILLED\n");
 
-        printf("client: wait for compress done\n");
+        //printf("client: wait for compress done\n");
 
         /* wait for COMPRESS_DONE message */
         if (msgrcv(client_msgq_id, &msg_server, sizeof(msg_server), 1, 0) == -1) {
@@ -169,7 +169,7 @@ int call_service(char* file_name, char** result_buffer) {
             return -1;
         }
 
-        printf("client: received COMPRESS_DONE\n");
+        //printf("client: received COMPRESS_DONE\n");
 
         /* copy result to result_buffer */
         memcpy(*result_buffer + count, shm_ptr, msg_server.compressed_size);
@@ -184,7 +184,7 @@ int call_service(char* file_name, char** result_buffer) {
             return -1;
         }
 
-        printf("client: sent SHM_USE_FINISHED\n");
+        //printf("client: sent SHM_USE_FINISHED\n");
 
         /* detach shm */
         shmdt(shm_ptr);
