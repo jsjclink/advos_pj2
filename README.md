@@ -1,10 +1,11 @@
 # TinyFile Service
-*903973230 Sungjae Chung 903973231 Sangwoo Kim
+## 903973230 Sungjae Chung 903973231 Sangwoo Kim
 
 ##Instructions
+
 ###Build + Service Start
-* ./tfservice.sh
-*  make clean
+* ./tfservice.sh *
+*  make clean *
 ###Client Application(On separate bash shell)
 ./bin/usapp3 --file ./input/Huge.jpg --state SYNC
 
